@@ -96,7 +96,16 @@ const signin = async (req, res) => {
   }
 };
 
+const signout = (req, res) => {
+  // çerezi temizle
+  res.clearCookie("Authorization").json({
+    success: true,
+    message: "Signout successful!",
+  });
+};
+
 module.exports = {
   signup,
   signin,
+  signout,
 };
