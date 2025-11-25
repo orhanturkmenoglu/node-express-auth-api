@@ -1,7 +1,7 @@
 const User = require("../models/user.model");
-const { signupSchema } = require("../middlewares/validator");
-const bcrypt = require("bcryptjs");
-const doHashing = require("../utils/hashing");
+const { signupSchema, signinSchema } = require("../middlewares/validator");
+const { doHashing, verifyPassword } = require("../utils/hashing");
+const jwt = require("jsonwebtoken");
 
 const signup = async (req, res) => {
   // İstekten email ve password bilgilerini alıyoruz
@@ -43,6 +43,60 @@ const signup = async (req, res) => {
   }
 };
 
+const signin = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const { error, value } = signinSchema.validate({ email, password });
+
+    if (error) {
+      return res.status(401).json({ message: error.details[0].message });
+    }
+
+    // .select("+password"); Kullanıcıyı veritabanında bul ve şifre alanını da dahil et
+    const existingUser = await User.findOne({ email }).select("+password");
+    if (!existingUser)
+      return res.status(404).json({ message: "User not found!" });
+
+    const isPasswordValid = await verifyPassword(
+      password,
+      existingUser.password
+    );
+    if (!isPasswordValid)
+      return res.status(401).json({ message: "Invalid password!" });
+
+    // token oluştur
+
+    const token = jwt.sign(
+      {
+        userId: existingUser._id,
+        email: existingUser.email,
+        verified: existingUser.verified,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "8h", // token 8 saat geçerli olacak
+      }
+    );
+
+    // cookies olarak token gönder
+
+    res
+      .cookie("Authorization", "Bearer", +token, {
+        expires: new Date(Date.now() + 86400000),
+        httpOnly: true,
+      })
+      .json({
+        success: true,
+        message: "Signin successful!",
+        token: token,
+      });
+  } catch (err) {
+    console.error("Error during signin:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   signup,
+  signin,
 };
