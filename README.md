@@ -6,39 +6,41 @@ A secure Node.js/Express authentication API with JWT token management, password 
 
 - ✅ User registration (signup) with email validation
 - ✅ User login (signin) with JWT token generation
-- ✅ Password hashing with bcryptjs
+- ✅ User logout (signout) with cookie clearing
+- ✅ Password hashing with bcryptjs (12 salt rounds)
 - ✅ Request validation with Joi
 - ✅ MongoDB integration with Mongoose
 - ✅ Security headers with Helmet
 - ✅ CORS support
-- ✅ Cookie-based authentication
+- ✅ HttpOnly cookie-based authentication
 - ✅ Environment variable configuration
+- ✅ JWT token expiration (8 hours)
 
 ## Tech Stack
 
 - **Runtime**: Node.js
 - **Framework**: Express.js
-- **Database**: MongoDB
+- **Database**: MongoDB with Mongoose
 - **Authentication**: JWT (JSON Web Tokens)
 - **Password Hashing**: bcryptjs
 - **Validation**: Joi
-- **Security**: Helmet, CORS
+- **Security**: Helmet, CORS, HttpOnly Cookies
 
 ## Project Structure
 
 ```
 .
 ├── controllers/
-│   └── auth.controller.js      # Authentication logic
+│   └── auth.controller.js      # Authentication logic (signup, signin, signout)
 ├── middlewares/
-│   └── validator.js            # Request validation schemas
+│   └── validator.js            # Request validation schemas (signupSchema, signinSchema)
 ├── models/
-│   ├── user.model.js           # User schema
-│   └── post.model.js           # Post schema
+│   ├── user.model.js           # User schema with email & password
+│   └── post.model.js           # Post schema (optional)
 ├── routers/
 │   └── auth.router.js          # Authentication routes
 ├── utils/
-│   └── hashing.js              # Password hashing utilities
+│   └── hashing.js              # Password hashing utilities (doHashing, verifyPassword)
 ├── index.js                    # Application entry point
 ├── package.json
 ├── .env
@@ -64,7 +66,7 @@ A secure Node.js/Express authentication API with JWT token management, password 
    ```env
    PORT=5173
    MONGODB_URL=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>
-   JWT_SECRET=<your-jwt-secret-key>
+   JWT_SECRET=your-super-secret-jwt-key-here
    ```
 
 ## Usage
@@ -85,7 +87,7 @@ The server will run on `http://localhost:5173`
 
 ### Authentication Routes
 
-#### Sign Up
+#### 1. Sign Up
 - **POST** `/api/auth/signup`
 - **Body**:
   ```json
@@ -96,12 +98,28 @@ The server will run on `http://localhost:5173`
   ```
 - **Password Requirements**:
   - Minimum 8 characters
-  - At least one uppercase letter
-  - At least one lowercase letter
-  - At least one digit
+  - At least one uppercase letter (A-Z)
+  - At least one lowercase letter (a-z)
+  - At least one digit (0-9)
   - At least one special character (@$!%*?&)
+- **Success Response** (201):
+  ```json
+  {
+    "message": "User created successfully!",
+    "user": {
+      "_id": "507f1f77bcf86cd799439011",
+      "email": "user@example.com",
+      "verified": false,
+      "createdAt": "2025-11-26T10:30:00.000Z",
+      "updatedAt": "2025-11-26T10:30:00.000Z"
+    }
+  }
+  ```
+- **Error Responses**:
+  - `401`: Validation error
+  - `409`: User already exists
 
-#### Sign In
+#### 2. Sign In
 - **POST** `/api/auth/signin`
 - **Body**:
   ```json
@@ -110,68 +128,137 @@ The server will run on `http://localhost:5173`
     "password": "SecurePass@123"
   }
   ```
-- **Response**:
+- **Success Response** (200):
   ```json
   {
     "success": true,
     "message": "Signin successful!",
-    "token": "eyJhbGciOiJIUzI1NiIs..."
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
   ```
+- **Token Payload**:
+  - `userId`: User's MongoDB ID
+  - `email`: User's email
+  - `verified`: Verification status
+  - `expiresIn`: 8 hours
+- **Cookies Set**:
+  - `Authorization`: Bearer token (HttpOnly, expires in 24 hours)
+- **Error Responses**:
+  - `401`: Invalid credentials or validation error
+  - `404`: User not found
+
+#### 3. Sign Out
+- **POST** `/api/auth/signout`
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Signout successful!"
+  }
+  ```
+- **Action**: Clears the `Authorization` cookie
 
 ## Database Models
 
 ### User Model
-- `email`: String (unique, required, minimum 5 characters)
-- `password`: String (required, minimum 6 characters, hashed)
-- `verified`: Boolean (default: false)
-- `verificaionCode`: String
-- `verificaionCodeValidation`: Number
-- `forgotPasswordCode`: String
-- `forgotPasswordCodeValidation`: Number
-- `timestamps`: Automatically added (createdAt, updatedAt)
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `email` | String | Unique, required, min 5 chars, .com/.net only |
+| `password` | String | Required, min 6 chars, hashed with bcryptjs |
+| `verified` | Boolean | Default: false |
+| `verificaionCode` | String | For email verification |
+| `verificaionCodeValidation` | Number | Expiration timestamp |
+| `forgotPasswordCode` | String | For password reset |
+| `forgotPasswordCodeValidation` | Number | Expiration timestamp |
+| `createdAt` | Date | Auto-generated |
+| `updatedAt` | Date | Auto-generated |
 
 ### Post Model
-- `title`: String (required, trimmed)
-- `description`: String (required, trimmed)
-- `userId`: ObjectId reference to User (required)
-- `timestamps`: Automatically added (createdAt, updatedAt)
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `title` | String | Required, trimmed |
+| `description` | String | Required, trimmed |
+| `userId` | ObjectId | Reference to User, required |
+| `createdAt` | Date | Auto-generated |
+| `updatedAt` | Date | Auto-generated |
 
 ## Security Features
 
-- 🔒 Password hashing with bcryptjs (salt rounds: 12)
-- 🔐 JWT token expiration (8 hours)
-- 🛡️ Helmet security headers
-- ✔️ Request validation with Joi
-- 🍪 HttpOnly cookies for token storage
-- 📧 Email validation (.com, .net only)
+- 🔒 **Password Hashing**: bcryptjs with 12 salt rounds
+- 🔐 **JWT Tokens**: 8-hour expiration time
+- 🛡️ **Security Headers**: Helmet.js protection
+- ✔️ **Input Validation**: Joi schema validation
+- 🍪 **HttpOnly Cookies**: Secure token storage (prevents XSS)
+- 📧 **Email Validation**: .com and .net domains only
+- 🚫 **Password Filtering**: Password never returned in responses
 
 ## Error Handling
 
 The API returns appropriate HTTP status codes:
-- `201`: Created (successful signup)
-- `400/401`: Invalid request or validation error
-- `404`: User not found
-- `409`: User already exists
-- `500`: Internal server error
+| Status | Meaning |
+|--------|---------|
+| `201` | User created successfully |
+| `200` | Request successful (signin, signout) |
+| `400` | Bad request (validation error) |
+| `401` | Unauthorized (invalid credentials or validation) |
+| `404` | User not found |
+| `409` | Conflict (user already exists) |
+| `500` | Internal server error |
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Server port (default: 5173) |
-| `MONGODB_URL` | MongoDB connection string |
-| `JWT_SECRET` | Secret key for JWT signing |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `PORT` | Server port | `5173` |
+| `MONGODB_URL` | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/db` |
+| `JWT_SECRET` | Secret key for JWT signing | `your-secret-key-123` |
+
+## Key Implementation Details
+
+### Controllers (`auth.controller.js`)
+
+- **signup**: Creates new user with hashed password
+- **signin**: Authenticates user and issues JWT token with cookie
+- **signout**: Clears authentication cookie
+
+### Utils (`hashing.js`)
+
+- `doHashing()`: Hashes password with bcryptjs
+- `verifyPassword()`: Compares input password with hashed password
+
+### Validators (`validator.js`)
+
+- `signupSchema`: Validates email and password format
+- `signinSchema`: Validates email and password for login
 
 ## Future Enhancements
 
 - [ ] Email verification system
 - [ ] Password reset functionality
 - [ ] User profile management
-- [ ] Role-based access control (RBAC)
 - [ ] Refresh token implementation
-- [ ] Rate limiting
-- [ ] API documentation with Swagger
+- [ ] Role-based access control (RBAC)
+- [ ] Rate limiting & request throttling
+- [ ] Two-factor authentication (2FA)
+- [ ] API documentation with Swagger/OpenAPI
+- [ ] Unit and integration tests
+- [ ] Docker support
+
+## Common Issues & Solutions
+
+### Token not being set in cookies
+- Ensure `httpOnly: true` is set
+- Check CORS configuration allows credentials
+- Verify frontend sends `credentials: 'include'` in fetch
+
+### "JWT_SECRET not found"
+- Add `JWT_SECRET` to your `.env` file
+- Restart the development server
+
+### MongoDB connection error
+- Verify `MONGODB_URL` in `.env` file
+- Check MongoDB Atlas IP whitelist includes your IP
+- Ensure database user has correct permissions
 
 ## License
 
