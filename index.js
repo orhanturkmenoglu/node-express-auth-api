@@ -6,6 +6,8 @@ const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const app = express();
 
+const authRouter = require("./routers/auth.router");
+
 dotenv.config();
 
 // helmet  : kısaca güvenlik için çeşitli HTTP başlıklarını ayarlayan bir Express.js ara yazılımıdır.
@@ -30,6 +32,8 @@ mongoose
   .catch((err) => {
     console.log("Failed to connect to MongoDB", err);
   });
+
+app.use("/api/auth", authRouter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Auth API" });
