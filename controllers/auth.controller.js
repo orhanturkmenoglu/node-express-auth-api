@@ -3,9 +3,15 @@ const {
   signupSchema,
   signinSchema,
   acceptCodeSchema,
-  changePasswordSchema
+  changePasswordSchema,
+  acceptFPCodeSchema,
 } = require("../middlewares/validator");
-const { doHashing, comparePassword, hmacProcess, doHashValidation } = require("../utils/hashing");
+const {
+  doHashing,
+  comparePassword,
+  hmacProcess,
+  doHashValidation,
+} = require("../utils/hashing");
 const jwt = require("jsonwebtoken");
 const { emailTransporter } = require("../middlewares/mail.config");
 
@@ -299,7 +305,10 @@ const changePassword = async (req, res) => {
   try {
     // 1️⃣ Validate input
     console.log("🔍 Validating password change schema...");
-    const { error } = changePasswordSchema.validate({ oldPassword, newPassword });
+    const { error } = changePasswordSchema.validate({
+      oldPassword,
+      newPassword,
+    });
 
     if (error) {
       console.log("❌ Validation Error:", error.details[0].message);
@@ -319,7 +328,9 @@ const changePassword = async (req, res) => {
 
     // 3️⃣ Fetch user
     console.log(`🔎 Fetching user from DB: ${userId}`);
-    const existingUser = await User.findOne({ _id: userId }).select("+password");
+    const existingUser = await User.findOne({ _id: userId }).select(
+      "+password"
+    );
 
     if (!existingUser) {
       console.log("❌ User not found in DB");
@@ -354,9 +365,173 @@ const changePassword = async (req, res) => {
     return res
       .status(200)
       .json({ success: true, message: "Password updated!" });
-
   } catch (error) {
     console.log("🔥 Error in changePassword:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
+const sendForgotPasswordCode = async (req, res) => {
+  console.log("🔹 [sendForgotPasswordCode] Handler triggered");
+  const { email } = req.body;
+
+  console.log("📥 Incoming request body:", { email });
+
+  try {
+    // 1️⃣ Check if user exists
+    console.log(`🔎 Searching for user with email: ${email}`);
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      console.log("❌ User not found in DB");
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
+    }
+    console.log("✅ User found:", existingUser.email);
+
+    // 2️⃣ Generate 6-digit verification code
+    const rawVerificationCode = String(
+      Math.floor(100000 + Math.random() * 900000)
+    );
+    console.log("🔢 Generated verification code:", rawVerificationCode);
+
+    // 3️⃣ Send code via email
+    console.log("📧 Sending verification code via email...");
+    const mailResponse = await emailTransporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: existingUser.email,
+      subject: "Your Forgot Password Verification Code",
+      html: `<h1>${rawVerificationCode}</h1>`,
+    });
+
+    if (!mailResponse.accepted.includes(existingUser.email)) {
+      console.log("❌ Email sending failed:", email);
+      return res
+        .status(400)
+        .json({ success: false, message: "Failed to send verification code!" });
+    }
+    console.log("✅ Email sent successfully to:", existingUser.email);
+
+    // 4️⃣ Hash verification code and save to DB
+    const hashedCode = hmacProcess(
+      rawVerificationCode,
+      process.env.HMAC_VERIFICATION_CODE_SECRET
+    );
+    existingUser.forgotPasswordCode = hashedCode;
+    existingUser.forgotPasswordCodeValidation = Date.now();
+    await existingUser.save();
+    console.log("💾 Hashed verification code saved in DB");
+
+    // 5️⃣ Response success
+    return res
+      .status(200)
+      .json({ success: true, message: "Verification code sent!" });
+  } catch (err) {
+    console.error("🔥 Error in sendForgotPasswordCode:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
+const verifyForgotPasswordCode = async (req, res) => {
+  console.log("🔹 [verifyForgotPasswordCode] Handler triggered");
+  const { email, providedCode, newPassword } = req.body;
+
+  console.log("📥 Incoming Request Body:", {
+    email,
+    providedCode: "***",
+    newPassword: "***",
+  });
+
+  try {
+    // 1️⃣ Validate input
+    console.log("🔍 Validating forgot password code schema...");
+    const { error } = acceptFPCodeSchema.validate({
+      email,
+      providedCode,
+      newPassword,
+    });
+    if (error) {
+      console.log("❌ Validation failed:", error.details[0].message);
+      return res
+        .status(401)
+        .json({ success: false, message: error.details[0].message });
+    }
+    console.log("✅ Validation passed");
+
+    // 2️⃣ Find user
+    console.log(`🔎 Searching for user with email: ${email}`);
+    const existingUser = await User.findOne({ email }).select(
+      "+forgotPasswordCode +forgotPasswordCodeValidation"
+    );
+    if (!existingUser) {
+      console.log("❌ User not found in DB:", email);
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
+    }
+    console.log("✅ User found:", existingUser.email);
+
+    // 3️⃣ Check code existence
+    if (
+      !existingUser.forgotPasswordCode ||
+      !existingUser.forgotPasswordCodeValidation
+    ) {
+      console.log("❌ Forgot password code missing or invalid");
+      console.log(
+        "existingUser.forgotPasswordCode:",
+        existingUser.forgotPasswordCode
+      );
+      console.log(
+        "existingUser.forgotPasswordCodeValidation:",
+        existingUser.forgotPasswordCodeValidation
+      );
+      return res
+        .status(400)
+        .json({ success: false, message: "Something is wrong with the code!" });
+    }
+
+    // 4️⃣ Check expiration (5 minutes)
+    const isExpired =
+      Date.now() - existingUser.forgotPasswordCodeValidation > 5 * 60 * 1000;
+    if (isExpired) {
+      console.log("⌛ Verification code expired for user:", email);
+      return res
+        .status(400)
+        .json({ success: false, message: "Code has expired!" });
+    }
+
+    // 5️⃣ Compare provided code with hashed code
+    const hashedProvidedCode = hmacProcess(
+      providedCode.toString(),
+      process.env.HMAC_VERIFICATION_CODE_SECRET
+    );
+    console.log("🔹 Hashed provided code:", hashedProvidedCode);
+
+    if (hashedProvidedCode === existingUser.forgotPasswordCode) {
+      // 6️⃣ Update user password/verification
+      const hashedPassword = await doHashing(newPassword, 12);
+      
+      existingUser.password = hashedPassword;
+      existingUser.forgotPasswordCode = undefined;
+      existingUser.forgotPasswordCodeValidation = undefined;
+      await existingUser.save();
+
+      console.log("✅ User verified successfully:", email);
+      return res
+        .status(200)
+        .json({ success: true, message: "Your account has been verified!" });
+    }
+
+    console.log("❌ Provided code does not match for user:", email);
+    return res
+      .status(400)
+      .json({ success: false, message: "Verification code is invalid!" });
+  } catch (err) {
+    console.error("🔥 Error in verifyForgotPasswordCode:", err);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -372,5 +547,7 @@ module.exports = {
   signout,
   sendVerificationCode,
   verifyVerificationCode,
-  changePassword
+  changePassword,
+  sendForgotPasswordCode,
+  verifyForgotPasswordCode,
 };
