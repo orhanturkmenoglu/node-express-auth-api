@@ -1,12 +1,13 @@
 const User = require("../models/user.model");
 const { signupSchema, signinSchema } = require("../middlewares/validator");
-const { doHashing, verifyPassword } = require("../utils/hashing");
+const { doHashing, comparePassword, hmacProcess } = require("../utils/hashing");
 const jwt = require("jsonwebtoken");
+const { emailTransporter } = require("../middlewares/mail.config");
 
 const signup = async (req, res) => {
   // İstekten email ve password bilgilerini alıyoruz
   const { email, password } = req.body;
-
+  console.log(req.body);
   // Validation ve kullanıcı oluşturma işlemleri burada yapılacak ve hashing işlemi gerçekleştirilecek
   try {
     const { error, value } = signupSchema.validate({ email, password });
@@ -54,6 +55,7 @@ const signin = async (req, res) => {
 
     // .select("+password"); Kullanıcıyı veritabanında bul ve şifre alanını da dahil et
     const existingUser = await User.findOne({ email }).select("+password");
+    console.log("existing user :", existingUser);
     if (!existingUser)
       return res.status(404).json({ message: "User not found!" });
 
@@ -81,7 +83,7 @@ const signin = async (req, res) => {
     // cookies olarak token gönder
 
     res
-      .cookie("Authorization", "Bearer", +token, {
+      .cookie("Authorization", "Bearer " + token, {
         expires: new Date(Date.now() + 86400000),
         httpOnly: true,
       })
@@ -97,6 +99,7 @@ const signin = async (req, res) => {
 };
 
 const signout = (req, res) => {
+  console.log("Signout request received");
   // çerezi temizle
   res.clearCookie("Authorization").json({
     success: true,
@@ -104,8 +107,63 @@ const signout = (req, res) => {
   });
 };
 
+const sendVerificationCode = async (req, res) => {
+  // Burada doğrulama kodu oluşturma ve e-posta gönderme işlemleri yapılacak
+
+  const { email } = req.body;
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (!existingUser)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
+
+    if (existingUser.verified) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User already verified!" });
+    }
+
+    const rawVerificationCode = String(
+      Math.floor(100000 + Math.random() * 900000)
+    );
+
+    const mailResponse = await emailTransporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: existingUser.email,
+      subject: "Your Verification Code",
+      html: `<h1>${rawVerificationCode}</h1>`,
+    });
+
+    if (!mailResponse.accepted.includes(existingUser.email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Failed to send verification code!",
+      });
+    }
+    const hashedCode = hmacProcess(
+      rawVerificationCode,
+      process.env.HMAC_VERIFICATION_CODE_SECRET
+    );
+
+    existingUser.verificationCode = hashedCode;
+    existingUser.verificationCodeValidation = Date.now();
+    await existingUser.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Verification code sent!",
+    });
+  } catch (err) {
+    console.error("Error sending verification code:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   signup,
   signin,
   signout,
+  sendVerificationCode,
 };
