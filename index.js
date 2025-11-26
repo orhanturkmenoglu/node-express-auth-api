@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const app = express();
 
 const authRouter = require("./routers/auth.router");
+const postsRouter = require("./routers/post.router");
 
 dotenv.config();
 
@@ -34,6 +35,8 @@ mongoose
   });
 
 app.use("/api/auth", authRouter);
+app.use("/api/posts",postsRouter)
+
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Auth API" });
