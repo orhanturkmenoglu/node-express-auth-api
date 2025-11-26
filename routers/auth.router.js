@@ -6,13 +6,14 @@ const {
   sendVerificationCode,
   verifyVerificationCode,
 } = require("../controllers/auth.controller");
+const { identifier } = require("../middlewares/identification");
 const router = express.Router();
 
 router.post("/signup", signup);
 router.post("/signin", signin);
-router.post("/signout", signout);
+router.post("/signout",identifier, signout);
 
-router.post("/send-verification-code", sendVerificationCode);
-router.post("/verify-verification-code", verifyVerificationCode);
+router.patch("/send-verification-code",identifier, sendVerificationCode);
+router.patch("/verify-verification-code",identifier, verifyVerificationCode);
 
 module.exports = router;
