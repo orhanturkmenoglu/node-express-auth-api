@@ -29,7 +29,7 @@ A secure Node.js/Express authentication API with JWT token management, password 
 ## Project Structure
 
 ```
-.
+
 ├── controllers/
 │   └── auth.controller.js      # Authentication logic (signup, signin, signout, verification)
 ├── middlewares/
