@@ -1,4 +1,3 @@
-...existing code...
 # Express Authentication API
 
 A secure Node.js/Express authentication API with JWT token management, password hashing, and MongoDB integration.
