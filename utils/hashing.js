@@ -6,6 +6,11 @@ const doHashing = (value, saltValue) => {
   return result;
 };
 
+const doHashValidation = (oldPassword,newPassword)=>{
+  const result = compare(oldPassword,newPassword);
+  return result;
+}
+
 const comparePassword = (plainValue, hashedValue) => {
   const result = compare(plainValue, hashedValue);
   return result;
@@ -19,4 +24,5 @@ module.exports = {
   doHashing,
   comparePassword,
   hmacProcess,
+  doHashValidation
 };

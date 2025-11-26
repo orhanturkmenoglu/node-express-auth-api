@@ -42,8 +42,25 @@ const acceptCodeSchema = Joi.object({
     providedCode: Joi.number().required()
 })
 
+const changePasswordSchema = Joi.object({
+  newPassword: Joi.string()
+  .required()
+  .pattern(
+      new RegExp(
+        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+      )),
+  oldPassword:Joi.string()
+  .required()
+  .pattern(
+      new RegExp(
+        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+      )),
+})
+
 module.exports = {
   signupSchema,
   signinSchema,
-  acceptCodeSchema
+  acceptCodeSchema,
+  changePasswordSchema,
+  
 };

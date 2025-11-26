@@ -3,8 +3,9 @@ const {
   signupSchema,
   signinSchema,
   acceptCodeSchema,
+  changePasswordSchema
 } = require("../middlewares/validator");
-const { doHashing, comparePassword, hmacProcess } = require("../utils/hashing");
+const { doHashing, comparePassword, hmacProcess, doHashValidation } = require("../utils/hashing");
 const jwt = require("jsonwebtoken");
 const { emailTransporter } = require("../middlewares/mail.config");
 
@@ -287,6 +288,81 @@ const verifyVerificationCode = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  console.log("🔹 [changePassword] Handler triggered");
+  const { userId, verified } = req.user;
+  const { oldPassword, newPassword } = req.body;
+
+  console.log("📥 Incoming Request Body:", { oldPassword, newPassword: "***" });
+  console.log("👤 Authenticated User:", { userId, verified });
+
+  try {
+    // 1️⃣ Validate input
+    console.log("🔍 Validating password change schema...");
+    const { error } = changePasswordSchema.validate({ oldPassword, newPassword });
+
+    if (error) {
+      console.log("❌ Validation Error:", error.details[0].message);
+      return res
+        .status(401)
+        .json({ success: false, message: error.details[0].message });
+    }
+    console.log("✅ Validation Passed");
+
+    // 2️⃣ Check if user verified
+    if (!verified) {
+      console.log("⚠ User is not verified!");
+      return res
+        .status(401)
+        .json({ success: false, message: "You are not verified user!" });
+    }
+
+    // 3️⃣ Fetch user
+    console.log(`🔎 Fetching user from DB: ${userId}`);
+    const existingUser = await User.findOne({ _id: userId }).select("+password");
+
+    if (!existingUser) {
+      console.log("❌ User not found in DB");
+      return res
+        .status(401)
+        .json({ success: false, message: "User does not exists!" });
+    }
+    console.log("✅ User found:", existingUser.email);
+
+    // 4️⃣ Validate old password
+    console.log("🔐 Validating old password...");
+    const result = await doHashValidation(oldPassword, existingUser.password);
+
+    if (!result) {
+      console.log("❌ Old password mismatch!");
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials!" });
+    }
+    console.log("✅ Old password validated");
+
+    // 5️⃣ Hash new password
+    console.log("🔁 Hashing new password...");
+    const hashedPassword = await doHashing(newPassword, 12);
+    console.log("🔑 New password hashed successfully");
+
+    // 6️⃣ Save new password
+    existingUser.password = hashedPassword;
+    await existingUser.save();
+    console.log("💾 Password updated in DB successfully");
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Password updated!" });
+
+  } catch (error) {
+    console.log("🔥 Error in changePassword:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
 // ====================================
 // EXPORTS
 // ====================================
@@ -296,4 +372,5 @@ module.exports = {
   signout,
   sendVerificationCode,
   verifyVerificationCode,
+  changePassword
 };
