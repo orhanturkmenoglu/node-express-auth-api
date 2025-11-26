@@ -22,11 +22,11 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    verificaionCode :{
+    verificationCode :{
         type: String,
         select: false,
     },
-    verificaionCodeValidation :{
+    verificationCodeValidation :{
         type: Number,
         select: false,
     },

@@ -76,7 +76,10 @@ const signin = async (req, res) => {
     }
 
     // Check password
-    const isPasswordMatch = await comparePassword(password, existingUser.password);
+    const isPasswordMatch = await comparePassword(
+      password,
+      existingUser.password
+    );
     if (!isPasswordMatch) {
       console.log("❌ Invalid password for user:", email);
       return res.status(401).json({ message: "Invalid password!" });
@@ -135,15 +138,21 @@ const sendVerificationCode = async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (!existingUser) {
       console.log("❌ User not found:", email);
-      return res.status(404).json({ success: false, message: "User not found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
     }
 
     if (existingUser.verified) {
       console.log("⚠ User already verified:", email);
-      return res.status(400).json({ success: false, message: "User already verified!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User already verified!" });
     }
 
-    const rawVerificationCode = String(Math.floor(100000 + Math.random() * 900000));
+    const rawVerificationCode = String(
+      Math.floor(100000 + Math.random() * 900000)
+    );
 
     const mailResponse = await emailTransporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -154,17 +163,24 @@ const sendVerificationCode = async (req, res) => {
 
     if (!mailResponse.accepted.includes(existingUser.email)) {
       console.log("❌ Failed to send verification code to:", email);
-      return res.status(400).json({ success: false, message: "Failed to send verification code!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Failed to send verification code!" });
     }
 
     // Hash and save verification code
-    const hashedCode = hmacProcess(rawVerificationCode, process.env.HMAC_VERIFICATION_CODE_SECRET);
+    const hashedCode = hmacProcess(
+      rawVerificationCode,
+      process.env.HMAC_VERIFICATION_CODE_SECRET
+    );
     existingUser.verificationCode = hashedCode;
     existingUser.verificationCodeValidation = Date.now();
     await existingUser.save();
 
     console.log("✅ Verification code sent to:", email);
-    return res.status(200).json({ success: true, message: "Verification code sent!" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Verification code sent!" });
   } catch (err) {
     console.error("🔥 Error sending verification code:", err);
     return res.status(500).json({ message: "Internal server error" });
@@ -184,7 +200,9 @@ const verifyVerificationCode = async (req, res) => {
     const { error } = acceptCodeSchema.validate({ email, providedCode });
     if (error) {
       console.log("❌ Validation failed:", error.details[0].message);
-      return res.status(401).json({ success: false, message: error.details[0].message });
+      return res
+        .status(401)
+        .json({ success: false, message: error.details[0].message });
     }
     console.log("✅ Validation passed");
 
@@ -192,33 +210,57 @@ const verifyVerificationCode = async (req, res) => {
     const existingUser = await User.findOne({ email }).select(
       "+verificationCode +verificationCodeValidation"
     );
+
     if (!existingUser) {
       console.log("❌ User not found:", email);
-      return res.status(404).json({ success: false, message: "User not found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
     }
     console.log("✅ User found:", existingUser.email);
 
     // Already verified
     if (existingUser.verified) {
       console.log("⚠ User already verified:", email);
-      return res.status(400).json({ success: false, message: "You are already verified!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "You are already verified!" });
     }
 
     // Check code existence
-    if (!existingUser.verificationCode || !existingUser.verificationCodeValidation) {
+    if (
+      !existingUser.verificationCode ||
+      !existingUser.verificationCodeValidation
+    ) {
       console.log("❌ Verification code missing or invalid");
-      return res.status(400).json({ success: false, message: "Something is wrong with the code!" });
+      console.log(
+        "existingUser.verificationCode:",
+        existingUser.verificationCode
+      );
+      console.log(
+        "existingUser.verificationCodeValidation:",
+        existingUser.verificationCodeValidation
+      );
+      return res
+        .status(400)
+        .json({ success: false, message: "Something is wrong with the code!" });
     }
 
     // Check expiration (5 minutes)
-    const isExpired = Date.now() - existingUser.verificationCodeValidation > 5 * 60 * 1000;
+    const isExpired =
+      Date.now() - existingUser.verificationCodeValidation > 5 * 60 * 1000;
     if (isExpired) {
       console.log("⌛ Verification code expired for:", email);
-      return res.status(400).json({ success: false, message: "Code has expired!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Code has expired!" });
     }
 
     // Compare hashed codes
-    const hashedProvidedCode = hmacProcess(providedCode.toString(), process.env.HMAC_VERIFICATION_CODE_SECRET);
+    const hashedProvidedCode = hmacProcess(
+      providedCode.toString(),
+      process.env.HMAC_VERIFICATION_CODE_SECRET
+    );
     console.log("🔹 Hashed provided code:", hashedProvidedCode);
 
     if (hashedProvidedCode === existingUser.verificationCode) {
@@ -228,14 +270,20 @@ const verifyVerificationCode = async (req, res) => {
       await existingUser.save();
 
       console.log("✅ User verified successfully:", email);
-      return res.status(200).json({ success: true, message: "Your account has been verified!" });
+      return res
+        .status(200)
+        .json({ success: true, message: "Your account has been verified!" });
     }
 
     console.log("❌ Provided code does not match for user:", email);
-    return res.status(400).json({ success: false, message: "Verification code is invalid!" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Verification code is invalid!" });
   } catch (err) {
     console.error("🔥 Error in verifyVerificationCode:", err);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
