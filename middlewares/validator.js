@@ -32,7 +32,18 @@ const signinSchema = Joi.object({
     ), // En az 8 karakter, en az bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir
 });
 
+
+const acceptCodeSchema = Joi.object({
+   email: Joi.string()
+    .min(6)
+    .max(60)
+    .required()
+    .email({ tlds: { allow: ["com", "net"] } }),
+    providedCode: Joi.number().required()
+})
+
 module.exports = {
   signupSchema,
-  signinSchema
+  signinSchema,
+  acceptCodeSchema
 };

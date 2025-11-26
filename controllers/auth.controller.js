@@ -1,73 +1,88 @@
 const User = require("../models/user.model");
-const { signupSchema, signinSchema } = require("../middlewares/validator");
+const {
+  signupSchema,
+  signinSchema,
+  acceptCodeSchema,
+} = require("../middlewares/validator");
 const { doHashing, comparePassword, hmacProcess } = require("../utils/hashing");
 const jwt = require("jsonwebtoken");
 const { emailTransporter } = require("../middlewares/mail.config");
 
+// ====================================
+// 1️⃣ SIGNUP
+// ====================================
 const signup = async (req, res) => {
-  // İstekten email ve password bilgilerini alıyoruz
-  const { email, password } = req.body;
-  console.log(req.body);
-  // Validation ve kullanıcı oluşturma işlemleri burada yapılacak ve hashing işlemi gerçekleştirilecek
-  try {
-    const { error, value } = signupSchema.validate({ email, password });
+  console.log("🔹 [signup] Request body:", req.body);
 
+  const { email, password } = req.body;
+
+  try {
+    // Validate input
+    const { error } = signupSchema.validate({ email, password });
     if (error) {
+      console.log("❌ Validation failed:", error.details[0].message);
       return res.status(401).json({ message: error.details[0].message });
     }
-    // Kullanıcı zaten var mı kontrol et
+    console.log("✅ Validation passed");
 
+    // Check if user exists
     const existingUser = await User.findOne({ email });
-
     if (existingUser) {
+      console.log("⚠ User already exists:", email);
       return res.status(409).json({ message: "User already exists!" });
     }
 
+    // Hash password
     const hashedPassword = await doHashing(password, 12);
 
-    const newUser = new User({
-      email,
-      password: hashedPassword,
-    });
-
+    // Create new user
+    const newUser = new User({ email, password: hashedPassword });
     const savedUser = await newUser.save();
+    savedUser.password = undefined; // Don't return password
 
-    savedUser.password = undefined; // Şifreyi yanıt olarak göndermiyoruz
-
+    console.log("✅ User created successfully:", savedUser.email);
     return res.status(201).json({
       message: "User created successfully!",
       user: savedUser,
     });
   } catch (err) {
-    console.error("Error during signup:", err);
+    console.error("🔥 Error during signup:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
+// ====================================
+// 2️⃣ SIGNIN
+// ====================================
 const signin = async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const { error, value } = signinSchema.validate({ email, password });
+  console.log("🔹 [signin] Request body:", req.body);
 
+  const { email, password } = req.body;
+
+  try {
+    // Validate input
+    const { error } = signinSchema.validate({ email, password });
     if (error) {
+      console.log("❌ Validation failed:", error.details[0].message);
       return res.status(401).json({ message: error.details[0].message });
     }
+    console.log("✅ Validation passed");
 
-    // .select("+password"); Kullanıcıyı veritabanında bul ve şifre alanını da dahil et
+    // Find user and include password
     const existingUser = await User.findOne({ email }).select("+password");
-    console.log("existing user :", existingUser);
-    if (!existingUser)
+    if (!existingUser) {
+      console.log("❌ User not found:", email);
       return res.status(404).json({ message: "User not found!" });
+    }
 
-    const isPasswordMatch = await comparePassword(
-      password,
-      existingUser.password
-    );
-    if (!isPasswordMatch)
+    // Check password
+    const isPasswordMatch = await comparePassword(password, existingUser.password);
+    if (!isPasswordMatch) {
+      console.log("❌ Invalid password for user:", email);
       return res.status(401).json({ message: "Invalid password!" });
+    }
 
-    // token oluştur
-
+    // Create JWT token
     const token = jwt.sign(
       {
         userId: existingUser._id,
@@ -75,13 +90,12 @@ const signin = async (req, res) => {
         verified: existingUser.verified,
       },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "8h", // token 8 saat geçerli olacak
-      }
+      { expiresIn: "8h" }
     );
 
-    // cookies olarak token gönder
+    console.log("✅ User signed in successfully:", email);
 
+    // Send token in cookie
     res
       .cookie("Authorization", "Bearer " + token, {
         expires: new Date(Date.now() + 86400000),
@@ -90,44 +104,46 @@ const signin = async (req, res) => {
       .json({
         success: true,
         message: "Signin successful!",
-        token: token,
+        token,
       });
   } catch (err) {
-    console.error("Error during signin:", err);
+    console.error("🔥 Error during signin:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
+// ====================================
+// 3️⃣ SIGNOUT
+// ====================================
 const signout = (req, res) => {
-  console.log("Signout request received");
-  // çerezi temizle
+  console.log("🔹 [signout] Request received");
   res.clearCookie("Authorization").json({
     success: true,
     message: "Signout successful!",
   });
 };
 
+// ====================================
+// 4️⃣ SEND VERIFICATION CODE
+// ====================================
 const sendVerificationCode = async (req, res) => {
-  // Burada doğrulama kodu oluşturma ve e-posta gönderme işlemleri yapılacak
+  console.log("🔹 [sendVerificationCode] Request body:", req.body);
 
   const { email } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
-    if (!existingUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found!" });
-
-    if (existingUser.verified) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User already verified!" });
+    if (!existingUser) {
+      console.log("❌ User not found:", email);
+      return res.status(404).json({ success: false, message: "User not found!" });
     }
 
-    const rawVerificationCode = String(
-      Math.floor(100000 + Math.random() * 900000)
-    );
+    if (existingUser.verified) {
+      console.log("⚠ User already verified:", email);
+      return res.status(400).json({ success: false, message: "User already verified!" });
+    }
+
+    const rawVerificationCode = String(Math.floor(100000 + Math.random() * 900000));
 
     const mailResponse = await emailTransporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -137,33 +153,99 @@ const sendVerificationCode = async (req, res) => {
     });
 
     if (!mailResponse.accepted.includes(existingUser.email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Failed to send verification code!",
-      });
+      console.log("❌ Failed to send verification code to:", email);
+      return res.status(400).json({ success: false, message: "Failed to send verification code!" });
     }
-    const hashedCode = hmacProcess(
-      rawVerificationCode,
-      process.env.HMAC_VERIFICATION_CODE_SECRET
-    );
 
+    // Hash and save verification code
+    const hashedCode = hmacProcess(rawVerificationCode, process.env.HMAC_VERIFICATION_CODE_SECRET);
     existingUser.verificationCode = hashedCode;
     existingUser.verificationCodeValidation = Date.now();
     await existingUser.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Verification code sent!",
-    });
+    console.log("✅ Verification code sent to:", email);
+    return res.status(200).json({ success: true, message: "Verification code sent!" });
   } catch (err) {
-    console.error("Error sending verification code:", err);
+    console.error("🔥 Error sending verification code:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
+// ====================================
+// 5️⃣ VERIFY VERIFICATION CODE
+// ====================================
+const verifyVerificationCode = async (req, res) => {
+  console.log("🔹 [verifyVerificationCode] Request body:", req.body);
+
+  const { email, providedCode } = req.body;
+
+  try {
+    // Validate input
+    const { error } = acceptCodeSchema.validate({ email, providedCode });
+    if (error) {
+      console.log("❌ Validation failed:", error.details[0].message);
+      return res.status(401).json({ success: false, message: error.details[0].message });
+    }
+    console.log("✅ Validation passed");
+
+    // Find user
+    const existingUser = await User.findOne({ email }).select(
+      "+verificationCode +verificationCodeValidation"
+    );
+    if (!existingUser) {
+      console.log("❌ User not found:", email);
+      return res.status(404).json({ success: false, message: "User not found!" });
+    }
+    console.log("✅ User found:", existingUser.email);
+
+    // Already verified
+    if (existingUser.verified) {
+      console.log("⚠ User already verified:", email);
+      return res.status(400).json({ success: false, message: "You are already verified!" });
+    }
+
+    // Check code existence
+    if (!existingUser.verificationCode || !existingUser.verificationCodeValidation) {
+      console.log("❌ Verification code missing or invalid");
+      return res.status(400).json({ success: false, message: "Something is wrong with the code!" });
+    }
+
+    // Check expiration (5 minutes)
+    const isExpired = Date.now() - existingUser.verificationCodeValidation > 5 * 60 * 1000;
+    if (isExpired) {
+      console.log("⌛ Verification code expired for:", email);
+      return res.status(400).json({ success: false, message: "Code has expired!" });
+    }
+
+    // Compare hashed codes
+    const hashedProvidedCode = hmacProcess(providedCode.toString(), process.env.HMAC_VERIFICATION_CODE_SECRET);
+    console.log("🔹 Hashed provided code:", hashedProvidedCode);
+
+    if (hashedProvidedCode === existingUser.verificationCode) {
+      existingUser.verified = true;
+      existingUser.verificationCode = undefined;
+      existingUser.verificationCodeValidation = undefined;
+      await existingUser.save();
+
+      console.log("✅ User verified successfully:", email);
+      return res.status(200).json({ success: true, message: "Your account has been verified!" });
+    }
+
+    console.log("❌ Provided code does not match for user:", email);
+    return res.status(400).json({ success: false, message: "Verification code is invalid!" });
+  } catch (err) {
+    console.error("🔥 Error in verifyVerificationCode:", err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// ====================================
+// EXPORTS
+// ====================================
 module.exports = {
   signup,
   signin,
   signout,
   sendVerificationCode,
+  verifyVerificationCode,
 };
