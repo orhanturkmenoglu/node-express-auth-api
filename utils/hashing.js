@@ -5,7 +5,7 @@ const doHashing = (value, saltValue) => {
   return result;
 };
 
-const verifyPassword = (plainValue, hashedValue) => {
+const comparePassword = (plainValue, hashedValue) => {
     const result = compare(plainValue, hashedValue);
     return result;
 };

@@ -57,11 +57,11 @@ const signin = async (req, res) => {
     if (!existingUser)
       return res.status(404).json({ message: "User not found!" });
 
-    const isPasswordValid = await verifyPassword(
+    const isPasswordMatch = await comparePassword(
       password,
       existingUser.password
     );
-    if (!isPasswordValid)
+    if (!isPasswordMatch)
       return res.status(401).json({ message: "Invalid password!" });
 
     // token oluştur
