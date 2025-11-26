@@ -52,7 +52,7 @@ A secure Node.js/Express authentication API with JWT token management, password 
 
 1. Clone repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/orhanturkmenoglu/node-express-auth-api
 cd node-express-auth-api
 ```
 
