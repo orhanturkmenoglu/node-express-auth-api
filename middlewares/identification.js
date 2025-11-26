@@ -43,7 +43,7 @@ exports.identifier = (req, res, next) => {
     if (jwtVerified) {
       // 6️⃣ Veriyi request içine ekle
       req.user = jwtVerified;
-
+      console.log("📥 req.user content:", req.user); 
       next();
     } else {
       throw new Error("Error in the token");
