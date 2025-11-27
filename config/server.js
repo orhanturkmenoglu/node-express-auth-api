@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const app = require("./index.js"); // make sure your Express app is imported
+const app = require("./index"); // make sure your Express app is imported
 
 const PORT = process.env.PORT || 5173;
 const MONGODB_URL = process.env.MONGODB_URL;
