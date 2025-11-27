@@ -1,19 +1,15 @@
 const express = require("express");
-const { getPosts,createPost } = require("../controllers/posts.controller");
+const { getPosts,createPost,deletePost, getPostById } = require("../controllers/posts.controller");
 const { identifier } = require("../middlewares/identification");
 
 const router = express.Router();
 
 
 router.get("/all-post",getPosts);
-/* router.get("/single-post"); */
+/* router.get("/single-post/:id",getPostById); */
 
 router.post("/create-post",identifier,createPost);
 
-/* 
-router.put("/update-post");
+router.delete("/delete-post/:id", identifier, deletePost);
 
-
-router.delete("/delete-post");
- */
 module.exports = router;

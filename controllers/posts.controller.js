@@ -85,3 +85,52 @@ exports.createPost = async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 };
+
+exports.deletePost = async (req, res) => {
+  console.log("🗑️ [deletePost] Handler triggered");
+  console.log("🧪 req.params:", req.params);
+
+  const { id } = req.params;
+  const { userId } = req.user;
+
+  try {
+    // ID format kontrolü
+    if (!id || id.length !== 24) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Post ID format!",
+      });
+    }
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found!" });
+    }
+
+    if (post.userId.toString() !== userId) {
+      console.log("⛔ Unauthorized delete attempt!", {
+        postOwner: post.userId.toString(),
+        requester: _userId,
+      });
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to delete this post!",
+      });
+    }
+
+    await Post.findByIdAndDelete(id);
+    console.log("🗑️ Post deleted successfully:", id);
+    return res.status(200).json({
+      success: true,
+      message: "Post deleted successfully!",
+    });
+  } catch (error) {
+    console.error("🔥 Error in deletePost:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
