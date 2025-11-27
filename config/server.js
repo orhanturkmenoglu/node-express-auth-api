@@ -1,5 +1,6 @@
+// config/server.js
 const mongoose = require("mongoose");
-const app = require("./index"); // make sure your Express app is imported
+const app = require("../index"); // Express app'in index.js içinde
 
 const PORT = process.env.PORT || 5173;
 const MONGODB_URL = process.env.MONGODB_URL;
@@ -14,7 +15,7 @@ async function startServer() {
     });
   } catch (error) {
     console.error("❌ Failed to connect to MongoDB:", error);
-    process.exit(1); 
+    process.exit(1);
   }
 }
 
