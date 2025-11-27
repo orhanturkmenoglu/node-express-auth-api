@@ -1,0 +1,133 @@
+{
+  "info": {
+    "_postman_id": "95a3801c-7f22-4108-a6a7-328f768773bd",
+    "name": "User & Posts API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "34013973"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"orhantrkmn13@gmail.com\",\n  \"password\": \"Otrkmnn13*!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register", "host": ["{{base_url}}"], "path": ["api", "auth", "register"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"orhantrkmn13@gmail.com\",\n  \"password\": \"Otrkmnn15*!!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api", "auth", "logout"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Verification Code",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"orhantrkmn13@gmail.com\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/auth/send-code", "host": ["{{base_url}}"], "path": ["api", "auth", "send-code"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email Code",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"orhantrkmn13@gmail.com\",\n  \"code\": 656256\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/auth/verify-code", "host": ["{{base_url}}"], "path": ["api", "auth", "verify-code"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\n  \"oldPassword\": \"Otrkmnn13*!\",\n  \"newPassword\": \"Otrkmnn14*!\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/auth/change-password", "host": ["{{base_url}}"], "path": ["api", "auth", "change-password"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Forgot Password Code",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"orhantrkmn13@gmail.com\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/auth/send-forgot-code", "host": ["{{base_url}}"], "path": ["api", "auth", "send-forgot-code"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify & Reset Password",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"orhantrkmn13@gmail.com\",\n  \"code\": 465651,\n  \"newPassword\": \"Otrkmnn15*!!\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/api/auth/verify-forgot-code", "host": ["{{base_url}}"], "path": ["api", "auth", "verify-forgot-code"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Get All Posts",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/posts", "host": ["{{base_url}}"], "path": ["api", "posts"] } },
+          "response": []
+        },
+        {
+          "name": "Get Single Post",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/posts/:id", "host": ["{{base_url}}"], "path": ["api", "posts", ":id"] } },
+          "response": []
+        },
+        {
+          "name": "Create Post",
+          "request": { "method": "POST", "header": [], "body": { "mode": "raw", "raw": "{\n  \"title\": \"My Second Post\",\n  \"description\": \"This is a sample description.\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{base_url}}/api/posts", "host": ["{{base_url}}"], "path": ["api", "posts"] } },
+          "response": []
+        },
+        {
+          "name": "Update Post",
+          "request": { "method": "PATCH", "header": [], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Post Title\",\n  \"description\": \"Updated description.\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{base_url}}/api/posts/:id", "host": ["{{base_url}}"], "path": ["api", "posts", ":id"] } },
+          "response": []
+        },
+        {
+          "name": "Delete Post",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{base_url}}/api/posts/:id", "host": ["{{base_url}}"], "path": ["api", "posts", ":id"] } },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [{ "key": "base_url", "value": "" }]
+}
