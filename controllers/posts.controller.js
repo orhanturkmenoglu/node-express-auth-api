@@ -1,4 +1,7 @@
-const { createPostSchema } = require("../middlewares/post.validator");
+const {
+  createPostSchema,
+  updatePostSchema,
+} = require("../middlewares/post.validator");
 const Post = require("../models/post.model");
 
 exports.getPosts = async (req, res) => {
@@ -160,6 +163,67 @@ exports.getPostById = async (req, res) => {
     });
   } catch (error) {
     console.error("🔥 Error in getPostById:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
+  }
+};
+
+exports.updatePost = async (req, res) => {
+  console.log("✏️ [updatePost] Handler triggered");
+  console.log("🧪 req.params:", req.params);
+  console.log("📥 req.body:", req.body);
+
+  const {id} = req.params;
+  const { title, description } = req.body;
+  const { userId } = req.user;
+
+  try {
+    // 1️⃣ Validate input
+    const { error, value } = updatePostSchema.validate(req.body);
+    if (error) {
+      console.log("❌ Validation failed:", error.details[0].message);
+      return res
+        .status(400)
+        .json({ success: false, message: error.details[0].message });
+    }
+    console.log("✅ Validation passed:", value);
+
+    // 2️⃣ Find post
+    const post = await Post.findById(id);
+    if (!post) {
+      console.log("❌ Post not found:", id);
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found!" });
+    }
+
+    if (post.userId.toString() !== userId) {
+      console.log("⛔ Unauthorized delete attempt!", {
+        postOwner: post.userId.toString(),
+        requester: _userId,
+      });
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to delete this post!",
+      });
+    }
+
+    post.title = value.title;
+    post.description = value.description;
+
+    await post.save();
+    console.log("✅ Post updated successfully:", id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Post updated successfully!",
+      data: post,
+    });
+  } catch (error) {
+    console.error("🔥 Error in updatePost:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };

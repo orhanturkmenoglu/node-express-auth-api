@@ -1,15 +1,23 @@
 const express = require("express");
-const { getPosts,createPost,deletePost, getPostById } = require("../controllers/posts.controller");
+const { getPosts,createPost,deletePost, getPostById,updatePost } = require("../controllers/posts.controller");
 const { identifier } = require("../middlewares/identification");
 
 const router = express.Router();
 
 
-router.get("/all-post",getPosts);
-router.get("/single-post/:id",getPostById);
+// GET all posts
+router.get("/posts", getPosts);
 
-router.post("/create-post",identifier,createPost);
+// GET single post by ID
+router.get("/posts/:id", getPostById);
 
-router.delete("/delete-post/:id", identifier, deletePost);
+// POST create new post (protected route)
+router.post("/posts", identifier, createPost);
+
+// PATCH update post by ID (protected route)
+router.patch("/posts/:id", identifier, updatePost);
+
+// DELETE post by ID (protected route)
+router.delete("/posts/:id", identifier, deletePost);
 
 module.exports = router;
