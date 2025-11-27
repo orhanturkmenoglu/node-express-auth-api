@@ -134,3 +134,32 @@ exports.deletePost = async (req, res) => {
     });
   }
 };
+
+exports.getPostById = async (req, res) => {
+  console.log("🔹 [getPostById] Handler triggered");
+  console.log("🧪 req.params:", req.params);
+
+  const { id } = req.params;
+
+  // amaç gelen post id ye göre datayı dönme
+
+  try {
+    const post = await Post.findById(id);
+    if (!post) {
+      console.log("❌ Post not found:", id);
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found!" });
+    }
+    console.log("✅ Post found:", post._id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Post retrieved successfully",
+      data: post,
+    });
+  } catch (error) {
+    console.error("🔥 Error in getPostById:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
