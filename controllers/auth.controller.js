@@ -18,7 +18,7 @@ const { emailTransporter } = require("../middlewares/mail.config");
 // ====================================
 // 1️⃣ User Registration
 // ====================================
-const registerUser  = async (req, res) => {
+const registerUser = async (req, res) => {
   console.log("🔹 [signup] Request body:", req.body);
 
   const { email, password } = req.body;
@@ -61,7 +61,7 @@ const registerUser  = async (req, res) => {
 // ====================================
 // 2️⃣ User Login
 // ====================================
-const loginUser  = async (req, res) => {
+const loginUser = async (req, res) => {
   console.log("🔹 [signin] Request body:", req.body);
 
   const { email, password } = req.body;
@@ -98,6 +98,7 @@ const loginUser  = async (req, res) => {
         userId: existingUser._id,
         email: existingUser.email,
         verified: existingUser.verified,
+        role: existingUser.role,
       },
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
@@ -125,7 +126,7 @@ const loginUser  = async (req, res) => {
 // ====================================
 // 3️⃣ User Logout
 // ====================================
-const logoutUser  = (req, res) => {
+const logoutUser = (req, res) => {
   console.log("🔹 [signout] Request received");
   res.clearCookie("Authorization").json({
     success: true,
@@ -136,7 +137,7 @@ const logoutUser  = (req, res) => {
 // ====================================
 // 4️⃣ Send Verification Code
 // ====================================
-const sendEmailVerificationCode  = async (req, res) => {
+const sendEmailVerificationCode = async (req, res) => {
   console.log("🔹 [sendVerificationCode] Request body:", req.body);
 
   const { email } = req.body;
@@ -197,7 +198,7 @@ const sendEmailVerificationCode  = async (req, res) => {
 // ====================================
 // 5️⃣ Verify Email Code
 // ====================================
-const verifyEmailCode  = async (req, res) => {
+const verifyEmailCode = async (req, res) => {
   console.log("🔹 [verifyVerificationCode] Request body:", req.body);
 
   const { email, providedCode } = req.body;
@@ -294,9 +295,8 @@ const verifyEmailCode  = async (req, res) => {
   }
 };
 
-
 // 6️⃣ Change Password
-const updatePassword  = async (req, res) => {
+const updatePassword = async (req, res) => {
   console.log("🔹 [changePassword] Handler triggered");
   const { userId, verified } = req.user;
   const { oldPassword, newPassword } = req.body;
@@ -440,7 +440,7 @@ const sendForgotPasswordCode = async (req, res) => {
 };
 
 // 8️⃣ Verify Forgot Password Code & Reset Password
-const verifyForgotPasswordCodeAndReset  = async (req, res) => {
+const verifyForgotPasswordCodeAndReset = async (req, res) => {
   console.log("🔹 [verifyForgotPasswordCode] Handler triggered");
   const { email, providedCode, newPassword } = req.body;
 
@@ -518,7 +518,7 @@ const verifyForgotPasswordCodeAndReset  = async (req, res) => {
     if (hashedProvidedCode === existingUser.forgotPasswordCode) {
       // 6️⃣ Update user password/verification
       const hashedPassword = await doHashing(newPassword, 12);
-      
+
       existingUser.password = hashedPassword;
       existingUser.forgotPasswordCode = undefined;
       existingUser.forgotPasswordCodeValidation = undefined;

@@ -94,8 +94,8 @@ exports.deletePost = async (req, res) => {
   console.log("🧪 req.params:", req.params);
 
   const { id } = req.params;
-  const { userId } = req.user;
-
+  const { userId,role} = req.user;
+  console.log("User Role :",role);
   try {
     // ID format kontrolü
     if (!id || id.length !== 24) {
@@ -112,10 +112,10 @@ exports.deletePost = async (req, res) => {
         .json({ success: false, message: "Post not found!" });
     }
 
-    if (post.userId.toString() !== userId) {
+    if (post.userId.toString() !== userId && role !=="ADMIN") {
       console.log("⛔ Unauthorized delete attempt!", {
         postOwner: post.userId.toString(),
-        requester: _userId,
+        requester: userId,
       });
       return res.status(403).json({
         success: false,

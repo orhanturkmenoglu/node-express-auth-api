@@ -1,6 +1,7 @@
 const express = require("express");
 const { getPosts,createPost,deletePost, getPostById,updatePost } = require("../controllers/posts.controller");
 const { identifier } = require("../middlewares/identification");
+const { allowRoles } = require("../middlewares/role.middleware");
 
 const router = express.Router();
 
@@ -18,6 +19,8 @@ router.post("/create", identifier, createPost);  // Yeni gönderi oluştur
 router.patch("/update/:id", identifier, updatePost);  // Gönderiyi güncelle
 
 // DELETE post by ID (protected)
-router.delete("/delete/:id", identifier, deletePost); // Gönderiyi sil
+router.delete("/delete/:id", identifier,allowRoles("ADMIN"), deletePost, async(req,res)=>{
+   res.json({ message: "Admin users listed!" }); 
+}); // Gönderiyi sil
 
 module.exports = router;
