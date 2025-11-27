@@ -22,17 +22,6 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-mongoose
-  .connect(process.env.MONGODB_URL)
-  .then(() => {
-    console.log("Connected to MongoDB");
-    app.listen(process.env.PORT || 5173, () => {
-      console.log(`Server is running on port ${process.env.PORT || 5173}`);
-    });
-  })
-  .catch((err) => {
-    console.log("Failed to connect to MongoDB", err);
-  });
 
 app.use("/api/auth", authRouter);
 app.use("/api/posts",postsRouter)
