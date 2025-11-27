@@ -5,7 +5,7 @@ const {
   acceptCodeSchema,
   changePasswordSchema,
   acceptFPCodeSchema,
-} = require("../middlewares/validator");
+} = require("../middlewares/user.validator");
 const {
   doHashing,
   comparePassword,
