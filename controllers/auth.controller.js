@@ -16,9 +16,9 @@ const jwt = require("jsonwebtoken");
 const { emailTransporter } = require("../middlewares/mail.config");
 
 // ====================================
-// 1️⃣ SIGNUP
+// 1️⃣ User Registration
 // ====================================
-const signup = async (req, res) => {
+const registerUser  = async (req, res) => {
   console.log("🔹 [signup] Request body:", req.body);
 
   const { email, password } = req.body;
@@ -59,9 +59,9 @@ const signup = async (req, res) => {
 };
 
 // ====================================
-// 2️⃣ SIGNIN
+// 2️⃣ User Login
 // ====================================
-const signin = async (req, res) => {
+const loginUser  = async (req, res) => {
   console.log("🔹 [signin] Request body:", req.body);
 
   const { email, password } = req.body;
@@ -123,9 +123,9 @@ const signin = async (req, res) => {
 };
 
 // ====================================
-// 3️⃣ SIGNOUT
+// 3️⃣ User Logout
 // ====================================
-const signout = (req, res) => {
+const logoutUser  = (req, res) => {
   console.log("🔹 [signout] Request received");
   res.clearCookie("Authorization").json({
     success: true,
@@ -134,9 +134,9 @@ const signout = (req, res) => {
 };
 
 // ====================================
-// 4️⃣ SEND VERIFICATION CODE
+// 4️⃣ Send Verification Code
 // ====================================
-const sendVerificationCode = async (req, res) => {
+const sendEmailVerificationCode  = async (req, res) => {
   console.log("🔹 [sendVerificationCode] Request body:", req.body);
 
   const { email } = req.body;
@@ -195,9 +195,9 @@ const sendVerificationCode = async (req, res) => {
 };
 
 // ====================================
-// 5️⃣ VERIFY VERIFICATION CODE
+// 5️⃣ Verify Email Code
 // ====================================
-const verifyVerificationCode = async (req, res) => {
+const verifyEmailCode  = async (req, res) => {
   console.log("🔹 [verifyVerificationCode] Request body:", req.body);
 
   const { email, providedCode } = req.body;
@@ -294,7 +294,9 @@ const verifyVerificationCode = async (req, res) => {
   }
 };
 
-const changePassword = async (req, res) => {
+
+// 6️⃣ Change Password
+const updatePassword  = async (req, res) => {
   console.log("🔹 [changePassword] Handler triggered");
   const { userId, verified } = req.user;
   const { oldPassword, newPassword } = req.body;
@@ -373,6 +375,7 @@ const changePassword = async (req, res) => {
   }
 };
 
+// 7️⃣ Send Forgot Password Code
 const sendForgotPasswordCode = async (req, res) => {
   console.log("🔹 [sendForgotPasswordCode] Handler triggered");
   const { email } = req.body;
@@ -436,7 +439,8 @@ const sendForgotPasswordCode = async (req, res) => {
   }
 };
 
-const verifyForgotPasswordCode = async (req, res) => {
+// 8️⃣ Verify Forgot Password Code & Reset Password
+const verifyForgotPasswordCodeAndReset  = async (req, res) => {
   console.log("🔹 [verifyForgotPasswordCode] Handler triggered");
   const { email, providedCode, newPassword } = req.body;
 
@@ -542,12 +546,13 @@ const verifyForgotPasswordCode = async (req, res) => {
 // EXPORTS
 // ====================================
 module.exports = {
-  signup,
-  signin,
-  signout,
-  sendVerificationCode,
-  verifyVerificationCode,
-  changePassword,
+  registerUser,
+  loginUser,
+  logoutUser,
+  sendEmailVerificationCode,
   sendForgotPasswordCode,
-  verifyForgotPasswordCode,
+  verifyEmailCode,
+  updatePassword,
+  sendEmailVerificationCode,
+  verifyForgotPasswordCodeAndReset,
 };

@@ -1,26 +1,30 @@
 const express = require("express");
 const {
-  signup,
-  signin,
-  signout,
-  sendVerificationCode,
-  verifyVerificationCode,
-  changePassword,
+  registerUser,
+  loginUser,
+  logoutUser,
+  sendEmailVerificationCode,
+  verifyEmailCode,
   sendForgotPasswordCode,
-  verifyForgotPasswordCode
+  updatePassword,
+  verifyForgotPasswordCodeAndReset
 } = require("../controllers/auth.controller");
 const { identifier } = require("../middlewares/identification");
+
 const router = express.Router();
 
-router.post("/signup", signup);
-router.post("/signin", signin);
-router.post("/signout",identifier, signout);
+// 🔹 Authentication Routes
+router.post("/signup", registerUser);
+router.post("/signin", loginUser);
+router.post("/signout", identifier, logoutUser);
 
-router.patch("/send-verification-code",identifier, sendVerificationCode);
-router.patch("/verify-verification-code",identifier, verifyVerificationCode);
-router.patch("/change-password",identifier,changePassword);
-router.patch("/send-forgot-password-code",sendForgotPasswordCode);
-router.patch("/verify-forgot-password-code",verifyForgotPasswordCode);
+// 🔹 Email Verification
+router.patch("/send-verification-code", identifier, sendEmailVerificationCode);
+router.patch("/verify-verification-code", identifier, verifyEmailCode);
 
+// 🔹 Password Management
+router.patch("/change-password", identifier, updatePassword);
+router.patch("/send-forgot-password-code", sendForgotPasswordCode);
+router.patch("/verify-forgot-password-code", verifyForgotPasswordCodeAndReset);
 
 module.exports = router;
